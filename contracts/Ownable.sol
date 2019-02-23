@@ -1,20 +1,23 @@
-pragma solidity >=0.4.21 <0.6.0;
+pragma solidity 0.5.2;
 /*
  * Ownable
  *
  * Base contract with an owner.
  * Provides onlyOwner modifier, which prevents function from running if it is called by anyone other than the owner.
  */
+
+
 contract Ownable {
-  address public owner;
 
-  modifier onlyOwner() {
-    if (msg.sender == owner)
-      _;
-  }
+    address public owner;
 
-  function transferOwnership(address newOwner) public onlyOwner {
-    if (newOwner != address(0)) owner = newOwner;
-  }
+    modifier onlyOwner() {
+        if (msg.sender == owner)
+            _;
+    }
+
+    function transferOwnership(address newOwner) public onlyOwner {
+        if (newOwner != address(0)) owner = newOwner;
+    }
 
 }

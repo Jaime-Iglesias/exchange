@@ -1,8 +1,10 @@
-pragma solidity >=0.4.21 <0.6.0;
+pragma solidity 0.5.2;
 /**
  * @title ERC20 interface
  * @dev see https://github.com/ethereum/EIPs/issues/20
  */
+
+
 interface IERC20 {
 
     /// @notice send `_value` token to `_to` from `msg.sender`
@@ -23,6 +25,11 @@ interface IERC20 {
     /// @param _value The amount of token to be transferred
     /// @return Whether the transfer was successful or not
     function transferFrom(address _from, address _to, uint256 _value) external returns (bool success);
+
+    /**
+     * @dev Total number of tokens in existence
+     */
+    function totalSupply() external view returns (uint256);
 
     /// @param _owner The address from which the balance will be retrieved
     /// @return The balance
