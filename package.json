@@ -1,0 +1,25 @@
+{
+  "name": "tfg",
+  "version": "1.0.0",
+  "description": "Repository to store TFG progress",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jaime-Iglesias/tfg.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Jaime-Iglesias/tfg/issues"
+  },
+  "homepage": "https://github.com/Jaime-Iglesias/tfg#readme",
+  "devDependencies": {
+    "openzeppelin-test-helpers": "^0.1.2"
+  }
+}
