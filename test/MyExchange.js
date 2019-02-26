@@ -48,20 +48,13 @@ contract ('Exchange', function (accounts) {
                         it('deposits the requested amount', async function () {
                             await this.token.approve(this.exchange.address, transferAmount, { from: sender });
 
-                            console.log(this.token.address);
-
                             await this.exchange.depositToken(this.token.address, transferAmount, { from: sender });
 
-                            console.log(this.token.address);
                             (await this.token.balanceOf(sender)).should.be.bignumber.equal(transferAmount);
 
-                            console.log(this.token.address);
                             (await this.token.balanceOf(this.exchange.address)).should.be.bignumber.equal(transferAmount);
 
-                            console.log(this.token.address);
-                            (await this.exchange.getUserBalance(this.token.address, { from: sender })).should.be.bignumber.equal(transferAmount);
-
-                            //(await this.exchange.userBalanceForToken(this.token.address, sender)).should.be.bignumber.equal(transferAmount);
+                            (await this.exchange.userBalanceForToken(this.token.address, sender)).should.be.bignumber.equal(transferAmount);
                         });
 
                         it('emits the deposit event', async function () {
