@@ -21,11 +21,16 @@ contract  MyExchange is Ownable {
     constructor() public {
     }
 
+    function getUserBalance(address _token) public view returns (uint256 _balance) {
+        return userBalanceForToken[_token][msg.sender];
+    }
+
     /// Function to send _amount of specific _token to contract
     /// This allows the contract to spend _amount tokens on your behalf.
     /// triggers DepositToken event
     function depositToken(address _token, uint256 _amount) public {
         //require(IERC20(_token).approve(address(this), _amount));
+        require(_token != address(0x0));
         require(IERC20(_token).transferFrom(msg.sender, address(this), _amount));
         userBalanceForToken[_token][msg.sender] = userBalanceForToken[_token][msg.sender].add(_amount);
         emit LogDepositToken(_token, msg.sender, _amount);
@@ -34,6 +39,7 @@ contract  MyExchange is Ownable {
     /// function to withdraw _amount of specific _token from contract
     /// triggers WithdrawToken event
     function withdrawToken(address _token, uint256 _amount) public {
+        require(_token != address(0x0));
         require(userBalanceForToken[_token][msg.sender] >= _amount);
         userBalanceForToken[_token][msg.sender] = userBalanceForToken[_token][msg.sender].sub(_amount);
         require(IERC20(_token).transfer(msg.sender, _amount));
