@@ -22,6 +22,10 @@ Users will be able to publish offers to either buy or sell ERC20/ETH and will al
   for the users involded in the transaction and make the neccesary calls to fulfill said order.
 4. Once the order has been fulfilled, users can decide to withdraw the tokens or keep on exchanging.
 
+# Technology
 
-
-
+  React
+  Web3
+  Metamask
+  Truffle
+    
