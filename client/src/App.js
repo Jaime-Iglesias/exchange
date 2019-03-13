@@ -30,7 +30,6 @@ class App extends Component {
 
         this.setState({ network: network, address: accounts[0] })
 
-=======
 class App extends Component {
 
     componentWillMount() {
@@ -42,37 +41,27 @@ class App extends Component {
         const network = await web3.eth.net.getNetworkType()
         const accounts = await web3.eth.getAccounts()
         this.setState({ account: accounts[0] })
->>>>>>> master
         console.log('network:', network)
         console.log('account:', accounts[0])
     }
 
     constructor(props) {
             super(props)
-<<<<<<< HEAD
             this.state = {
                 network: -1,
                 address: ''
             };
-=======
             this.state =  {account: ''}
->>>>>>> master
     }
 
     render() {
         return (
-<<<<<<< HEAD
           <div>
             <Header/>
             <h1>  Hello World!  </h1>
             <p> Your account: { this.state.address } </p>
             <p> The netWork: { this.state.network } </p>
-=======
-          <div className="container">
-            <h1>  Hello World!  </h1>
-            <p> Your account: { this.state.account } </p>
->>>>>>> master
-          </div>
+        </div>
         );
     }
 }
