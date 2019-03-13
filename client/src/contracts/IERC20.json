@@ -1729,7 +1729,11 @@
   },
   "networks": {},
   "schemaVersion": "3.0.2",
+<<<<<<< HEAD
   "updatedAt": "2019-03-12T18:49:54.350Z",
+=======
+  "updatedAt": "2019-03-10T16:14:48.011Z",
+>>>>>>> master
   "devdoc": {
     "details": "see https://github.com/ethereum/EIPs/issues/20\r",
     "methods": {
