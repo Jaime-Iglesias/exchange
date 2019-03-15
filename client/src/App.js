@@ -9,10 +9,6 @@ class App extends Component {
     constructor(props) {
             super(props)
 
-            this.state = {
-                network: -1,
-                address: '',
-            };
     }
 
     /*componentDidUpdate(prevProps, prevState) {
@@ -37,13 +33,13 @@ class App extends Component {
     }*/
 
     render() {
-        console.log(this.state);
+        console.log(this.props);
         return (
           <div>
             <Header/>
             <h1>  Hello World!  </h1>
-            <p> Your account: { this.state.address } </p>
-            <p> The network: { this.state.network } </p>
+            <p> Your account: { this.props.address } </p>
+            <p> The network: { this.props.network } </p>
         </div>
         );
     }
