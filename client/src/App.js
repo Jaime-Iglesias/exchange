@@ -2,37 +2,28 @@ import React, { Component } from 'react';
 import Web3 from 'web3';
 import './App.css';
 
-<<<<<<< HEAD
 import Header from "./components/Header";
 
 class App extends Component {
 
-    componentDidMount() {
-        this.loadBlockchainData();
+    constructor(props) {
+            super(props)
+
+            this.state = {
+                network: -1,
+                address: '',
+            };
     }
 
-    accountChanged(event) {
-        this.setState({
-            address: event.selectedAddress,
-        })
-    }
+    /*componentDidUpdate(prevProps, prevState) {
+        const{
+            network,
+            address,
+        } = this.State;
 
-    networkChanged(event) {
-        this.setState({
-            netWork: event.networkChanged,
-        })
-    }
+    }*/
 
-    async loadBlockchainData() {
-        const web3 = new Web3(Web3.givenProvider || "http://localhost:7545")
-        const network = await web3.eth.net.getNetworkType()
-        const accounts = await web3.eth.getAccounts()
-
-        this.setState({ network: network, address: accounts[0] })
-
-class App extends Component {
-
-    componentWillMount() {
+    /*componentWillMount() {
         this.loadBlockchainData();
     }
 
@@ -40,27 +31,19 @@ class App extends Component {
         const web3 = new Web3(Web3.giveProvider || "http://localhost:7545")
         const network = await web3.eth.net.getNetworkType()
         const accounts = await web3.eth.getAccounts()
-        this.setState({ account: accounts[0] })
+        this.setState({ network: network, address: accounts[0] })
         console.log('network:', network)
         console.log('account:', accounts[0])
-    }
-
-    constructor(props) {
-            super(props)
-            this.state = {
-                network: -1,
-                address: ''
-            };
-            this.state =  {account: ''}
-    }
+    }*/
 
     render() {
+        console.log(this.state);
         return (
           <div>
             <Header/>
             <h1>  Hello World!  </h1>
             <p> Your account: { this.state.address } </p>
-            <p> The netWork: { this.state.network } </p>
+            <p> The network: { this.state.network } </p>
         </div>
         );
     }
