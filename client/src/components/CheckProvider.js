@@ -23,7 +23,7 @@ class CheckProvider extends Component {
             this.isInstalled();
 
             try {
-                const accounts = await window.ethereum.enable();
+                await window.ethereum.enable();
                 this.getAddress();
             } catch (err) {
                 console.log(err);
@@ -53,6 +53,7 @@ class CheckProvider extends Component {
         ) {
             this.getInfo();
         }
+        console.log(this.state);
     }
 
     async isInstalled() {
@@ -102,10 +103,8 @@ class CheckProvider extends Component {
           address,
         } = this.state;
 
-        /*console.log(networkId);
-        console.log(address);*/
 
-        /*if (isInstalled === false) {
+        if (isInstalled === false) {
           return;
         }
 
@@ -113,15 +112,15 @@ class CheckProvider extends Component {
           return;
         }
 
-        if (networkId !== this.networkId) {
-          return;
-        }
-
-        if (address === '') {
+        /*if (networkId !== this.networkId) {
           return;
       }*/
 
-        return <App network = { networkId } address = { address } />;
+        if (address === '') {
+          return;
+      }
+
+        return <App network = { this.state.networkId } address = { this.state.address } />;
     }
 
     render() {
