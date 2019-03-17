@@ -12,7 +12,7 @@ contract TestingToken is IERC20 {
 
     mapping (address => mapping (address => uint256)) private allowed;
 
-    uint256 private totalSupply;
+    uint256 public totalSupply;
 
     constructor (uint _initialSupply) public {
         balances[msg.sender] = _initialSupply;

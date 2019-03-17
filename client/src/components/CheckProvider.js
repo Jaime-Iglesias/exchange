@@ -14,20 +14,35 @@ class CheckProvider extends Component {
                 networkId: -1,
                 address: '',
         };
+
     }
 
-    async componentDidMount() {
+    async loadProvider() {
+        const web3 = new Web3(Web3.giveProvider || "http://localhost:7545");
+        this.getInfo();
+    }
+
+    componentWillMount() {
+        this.loadProvider();
+    }
+
+    /*componentDidMount() {
         if (typeof window.ethereum !== 'undefined') {
             window.web3 = new Web3(window.ethereum);
 
+            window.addEventListener('message', ({ data }) => {
+                console.log(window.ethereum);
+            });
+
             this.isInstalled();
 
-            try {
-                await window.ethereum.enable();
-                this.getAddress();
-            } catch (err) {
-                console.log(err);
-            }
+            window.ethereum.enable()
+                .then( () => {
+                    this.getAddress();
+                })
+                .catch( (err) => {
+                    console.log(err);
+                });
             this.getNetwork();
         } else if (typeof window.web3 !== 'undefined') {
             window.web3 = new Web3(window.web3.currentProvider);
@@ -35,7 +50,7 @@ class CheckProvider extends Component {
         } else {
             console.log('No Web3 provider detected. Please, consider using MetaMask!');
         }
-    }
+    }*/
 
     componentWillUpdate(prevProps, prevState) {
         const {
@@ -57,7 +72,7 @@ class CheckProvider extends Component {
     }
 
     async isInstalled() {
-        if (window.web3.givenProvider) {
+        if (this.web3) {
             this.setState({
                 isInstalled: true,
             });
@@ -66,7 +81,7 @@ class CheckProvider extends Component {
 
     async getAddress() {
         try{
-            const accounts = await window.web3.eth.getAccounts();
+            const accounts = await this.web3.eth.getAccounts();
             if (accounts.length > 0) {
                 this.setState({
                     isUnlocked: true,
@@ -80,7 +95,7 @@ class CheckProvider extends Component {
 
     async getNetwork() {
         try{
-            const network = await window.web3.eth.net.getId();
+            const network = await this.web3.eth.net.getId();
             this.setState({
                 networkId: network,
             });
@@ -112,9 +127,9 @@ class CheckProvider extends Component {
           return;
         }
 
-        /*if (networkId !== this.networkId) {
+        if (networkId === -1) {
           return;
-      }*/
+        }
 
         if (address === '') {
           return;
