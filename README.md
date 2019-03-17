@@ -27,7 +27,7 @@ Users will be able to publish offers to either buy or sell ERC20/ETH and will al
   
   1. Setup Ganache at 127.0.0.1:7545
   2. Deploy the contracts by executing truffle migrate
-  3. npm start on the client folder.
+  3. got to https://github.com/Jaime-Iglesias/exchange-frontend and exceute: npm start on the client folder.
   
 # Technology
 
