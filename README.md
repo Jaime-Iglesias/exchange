@@ -22,6 +22,13 @@ Users will be able to publish offers to either buy or sell ERC20/ETH and will al
   for the users involded in the transaction and make the neccesary calls to fulfill said order.
 4. Once the order has been fulfilled, users can decide to withdraw the tokens or keep on exchanging.
 
+# Running this project
+  Currently this project can only be executed in local.
+  
+  1. Setup Ganache at 127.0.0.1:7545
+  2. Deploy the contracts by executing truffle migrate
+  3. npm start on the client folder.
+  
 # Technology
 
   React
