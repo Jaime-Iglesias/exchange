@@ -25,8 +25,8 @@ Users will be able to publish offers to either buy or sell ERC20/ETH and will al
 # Running this project
   Currently this project can only be executed in local.
   
-  1. Setup Ganache
-  2. execute truffle migrate
+  1. Setup Ganache at 127.0.0.1:7545
+  2. Deploy the contracts by executing truffle migrate
   3. npm start on the client folder.
   
 # Technology
