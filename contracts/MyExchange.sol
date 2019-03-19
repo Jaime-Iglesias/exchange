@@ -60,4 +60,13 @@ contract  MyExchange is Ownable {
         emit LogWithdrawToken(_token, msg.sender, _amount);
     }
 
+    /// function to get the amount of tokens of _token type a user has
+    function balanceOf(address _token) public view returns (uint256) {
+        return (IERC20(_token).balanceOf(msg.sender));
+    }
+
+    /// function to get the amount of tokens of _token type msg.sender has inside the contract
+    function getUserBalanceForToken(address _token) public view returns (uint256) {
+        return userBalanceForToken[_token][msg.sender];
+    }
 }
