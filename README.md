@@ -1,12 +1,12 @@
 # Setup
 
-This project is only available for local development.
-You will need to setup Ganache with networkId = 5777.
-then run truffle migrate.
-then run the frontend in -> https://github.com/Jaime-Iglesias/exchange-frontend.
-Metamask is also a must.
+  * This project is only available for local development.
+  * You will need to setup Ganache with networkId = 5777.
+  * then run truffle migrate.
+  * then run the frontend in -> https://github.com/Jaime-Iglesias/exchange-frontend.
+  * Metamask is also a must.
 
-As i continue developing more options will be available.
+  As i continue developing more options will be available.
 
 # ERC20 DEX
 
