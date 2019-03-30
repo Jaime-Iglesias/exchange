@@ -8,6 +8,11 @@
 
   As i continue developing more options will be available.
 
+# Use
+
+  * As of now the exchange.sol contains all the logic
+  * TestingToken is used as a way to test the exchange.
+  
 # ERC20 DEX
 
 This repository hosts the contents of my TFG
