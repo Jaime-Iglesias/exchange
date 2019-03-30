@@ -23,7 +23,6 @@ contract ('Exchange', function (accounts) {
         });
 
         describe('when the token address is not the 0 address', function () {
-            //Can this be tested ??
             describe('when the token is not ERC20 compliant', function () {
                 it('reverts', async function () {
 
@@ -56,7 +55,7 @@ contract ('Exchange', function (accounts) {
 
                             (await this.token.balanceOf(this.exchange.address)).should.be.bignumber.equal(transferAmount);
 
-                            (await this.exchange.userBalanceForToken(this.token.address, sender)).should.be.bignumber.equal(transferAmount);
+                            (await this.exchange.userBalanceForToken(this.token.address, { from sender })).should.be.bignumber.equal(transferAmount);
                         });
 
                         it('emits the deposit event', async function () {
@@ -102,7 +101,7 @@ contract ('Exchange', function (accounts) {
 
                     (await this.token.balanceOf(this.exchange.address)).should.be.bignumber.equal(zeroAmount);
 
-                    (await this.exchange.userBalanceForToken(this.token.address, sender)).should.be.bignumber.equal(zeroAmount);
+                    (await this.exchange.userBalanceForToken(this.token.address, { from: sender })).should.be.bignumber.equal(zeroAmount);
                 });
 
                 it('emits the withdraw event', async function () {
@@ -155,6 +154,16 @@ contract ('Exchange', function (accounts) {
             it('emits the withdraw event', async function () {
 
             });
+        });
+    });
+
+    describe('placeOrder', function() {
+        it('creates a new order', async function () {
+
+        });
+
+        it('emits a LogOrder event', aync function () {
+
         });
     });
 });
