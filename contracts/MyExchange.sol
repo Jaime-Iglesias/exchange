@@ -4,30 +4,79 @@ import "./SafeMath.sol";
 import "./IERC20.sol";
 import "./Ownable.sol";
 
-
 contract  MyExchange is Ownable {
 
     using SafeMath for uint256;
 
-    event LogDepositToken(address indexed _token, address indexed _user, uint256 _amount);
-    event LogWithdrawToken(address indexed _token, address indexed _user, uint256 _amount);
-    event LogOrder(address indexed _sender, address indexed _tokenMake, uint256 _amountMake, address _tokenTake, uint256 _amountTake, uint256 _expirationBlock, uint256 _nonce);
-    event LogCancelOrder(address indexed _sender, address indexed _tokenMake, uint256 _amountMake, address _tokenTake, uint256 _amountTake, uint256 _expirationBlock, uint256 _nonce);
+    event LogDepositToken(
+        address indexed _user,
+        address indexed _token,
+        uint256 _amount
+    );
+
+    event LogWithdrawToken(
+        address indexed _user,
+        address indexed _token,
+        uint256 _amount
+    );
+
+    event LogOrder(
+        address _maker,
+        uint256 _wantTokenId,
+        uint256 _wantAmount,
+        uint256 _giveTokenId,
+        uint256 _giveAmount,
+        uint256 _expiration,
+        uint256 _nonce
+    );
+
+    event LogCancelOrder(
+        address _maker,
+        uint256 _wantTokenId,
+        uint256 _wantAmount,
+        uint256 _giveTokenId,
+        uint256 _giveAmount,
+        uint256 _nonce
+    );
 
     struct Balance {
         uint256 available;
         uint256 locked;
     }
 
-    struct OrderInfo {
-        bool exists;
-        uint256 fill;
+    struct Order {
+        address orderMaker;
+        uint256 haveTokenId;
+        uint256 haveAmount;
+        uint256 wantTokenId;
+        uint256 wantAmount;
+        uint256 expiration;
+        uint256 nonce;
     }
 
+    mapping (address => uint256) tokenIds;
+    address[] tokenAddresses;
     mapping (address => mapping (address => Balance) ) public userBalanceForToken;
-    mapping (address => mapping (bytes32 => OrderInfo) ) public userOrders;
+    Order[] openOrders;
 
     constructor() public {
+        tokenIds[address(0)] = 1;
+        tokenAddresses[0] = address(0);
+    }
+
+    modifier tokenNotExists(address _tokenAddress) {
+        require(tokenIds[_tokenAddress] != 0, "Token already exists");
+        _;
+    }
+
+    modifier tokenExists(address _tokenAddress) {
+        require(tokenIds[_tokenAddress] == 0, "Token does not exist");
+        _;
+    }
+
+    function addToken(address _tokenAddress) external onlyOwner tokenNotExists(_tokenAddress) {
+        tokenIds[_tokenAddress] = tokenAddresses.length;
+        tokenAddresses.push(_tokenAddress);
     }
 
     /// Function to receive ETH
@@ -36,7 +85,7 @@ contract  MyExchange is Ownable {
     function deposit() external payable {
         Balance storage b = userBalanceForToken[address(0)][msg.sender];
         b.available = b.available.add(msg.value);
-        emit LogDepositToken(address(0), msg.sender, msg.value);
+        emit LogDepositToken(msg.sender, address(0), msg.value);
     }
 
     /// Function to withdraw ETH
@@ -47,11 +96,11 @@ contract  MyExchange is Ownable {
         require(b.available >= _amount, "not enough balance available");
         b.available = b.available.sub(_amount);
         msg.sender.transfer(_amount);
-        emit LogWithdrawToken(address(0), msg.sender, _amount);
+        emit LogWithdrawToken(msg.sender, address(0), _amount);
     }
 
     /// Function to send _amount of specific _token to contract
-    /// This allows the contract to spend _amount tokens on your behalf.
+    /// This allows the contrct to spend _amount tokens on your behalf.
     /// msg.sender has to call approve on this contract first.
     /// triggers DepositToken event.
     function depositToken(address _token, uint256 _amount) external {
@@ -59,7 +108,7 @@ contract  MyExchange is Ownable {
         require(IERC20(_token).transferFrom(msg.sender, address(this), _amount), "ERC20 transfer failed");
         Balance storage b = userBalanceForToken[_token][msg.sender];
         b.available = b.available.add(_amount);
-        emit LogDepositToken(_token, msg.sender, _amount);
+        emit LogDepositToken(msg.sender, _token, _amount);
     }
 
     /// function to withdraw _amount of specific _token from contract
@@ -70,45 +119,33 @@ contract  MyExchange is Ownable {
         require(b.available >= _amount, "not enough balance available");
         b.available = b.available.sub(_amount);
         require(IERC20(_token).transfer(msg.sender, _amount), "ERC20 transfer failed");
-        emit LogWithdrawToken(_token, msg.sender, _amount);
+        emit LogWithdrawToken(msg.sender, _token, _amount);
     }
 
-    /// function to allow users to place orders inside the contract
-    /// parameters:
-        /// _tokenMake: address of the token the user (maker of the order) wants to get from the trade.
-        /// _amountMake: amount of _tokenMake the maker wants to get from the trade.
-        /// _tokenTake: address of the token the user (maker of the order) gives in exchgange for the tokenMake.
-        /// _amountTake: amount of  _tokenTake the user (maker of the order) will give.
-        /// _expirationBlock: block number from which this order will not be acceptable anymore.
-        /// _nonce: for the sake of allowing users to place the exact same orders more than once, this number is added.
-        /// in this case, nonce will represent the nonce of msg.sender account at the moment of creating the Tx.
-    /// how it works:
-        /// The contract will store for each user, the hash of the orders they have placed, it will also store
-        /// the amount of the order that has been filled.
-    function placeOrder(address _tokenMake, uint256 _amountMake, address _tokenTake, uint256 _amountTake, uint256 _expirationBlock, uint256 _nonce) external {
-        Balance storage b = userBalanceForToken[_tokenTake][msg.sender];
-        require(b.available >= _amountTake, "not enough balance available");
-        b.available = b.available.sub(_amountTake);
-        b.locked = b.locked.add(_amountTake);
-        bytes memory m = abi.encode(_tokenMake, _amountMake, _tokenTake, _amountTake, _expirationBlock, _nonce);
-        bytes32 orderHash = keccak256(m);
-        OrderInfo storage o = userOrders[msg.sender][orderHash];
-        o.exists = true;
-        o.fill = 0;
-        emit LogOrder(msg.sender, _tokenMake, _amountMake, _tokenTake, _amountTake, _expirationBlock, _nonce);
+    function placeOrder(address _wantToken, uint256 _wantAmount, address _haveToken, uint256 _haveAmount, uint256 _expirationBlock, uint256 _nonce)
+    external tokenExists(_wantToken) tokenExists(_haveToken) {
+        Balance storage b = userBalanceForToken[_haveToken][msg.sender];
+        require(b.available >= _haveAmount, "not enough balance available");
+        b.available = b.available.sub(_haveAmount);
+        b.locked = b.locked.add(_haveAmount);
+        openOrders.push(Order({
+            orderMaker: msg.sender,
+            haveTokenId: tokenIds[_haveToken],
+            haveAmount: _haveAmount,
+            wantTokenId: tokenIds[_wantToken],
+            wantAmount: _wantAmount,
+            expiration: _expirationBlock,
+            nonce: _nonce
+        }));
+        emit LogOrder(msg.sender, tokenIds[_haveToken], _haveAmount, tokenIds[_wantToken], _wantAmount, _expirationBlock, _nonce)
     }
 
-    function cancelOrder(address _tokenMake, uint256 _amountMake, address _tokenTake, uint256 _amountTake, uint256 _expirationBlock, uint256 _nonce) external {
-        bytes memory m = abi.encode(_tokenMake, _amountMake, _tokenTake, _amountTake, _expirationBlock, _nonce);
-        bytes32 orderHash = keccak256(m);
-        OrderInfo storage o = userOrders[msg.sender][orderHash];
-        require(o.exists, "The order does not exist");
-        o.fill = _amountMake;
-        emit LogCancelOrder(msg.sender, _tokenMake, _amountMake, _tokenTake, _amountTake, _expirationBlock, _nonce);
+    function cancelOrder(address _wantToken, uint256 _wantAmount, address _haveToken, uint256 _haveAmount, uint256 _expirationBlock, uint256 _nonce) external {
+        //if the orders exists -> cancel it by deleting it from the openOrders
     }
 
     function executeOrder(address _tokenMake, uint256 _amountMake, address _tokenTake, uint256 _amountTake, uint256 _expirationBlock, uint256 _nonce) external {
-
+        //if the order exists -> start executing the order
     }
 
     /// function to get the amount of tokens of _token type a user has
@@ -122,11 +159,11 @@ contract  MyExchange is Ownable {
         return (b.available, b.locked);
     }
 
-    function getOrderFilling(address _tokenMake, uint256 _amountMake, address _tokenTake, uint256 _amountTake, uint256 _expirationBlock, uint256 _nonce) public view returns (uint256) {
-        bytes memory m = abi.encode(_tokenMake, _amountMake, _tokenTake, _amountTake, _expirationBlock, _nonce);
-        bytes32 orderHash = keccak256(m);
-        OrderInfo storage o = userOrders[msg.sender][orderHash];
-        require(o.exists, "The order does not exist");
-        return (o.fill);
+    function getOpenOrders() public view returns (Order[]) {
+        Order[] memory o = new Order[](openOrders.length);
+        for(uint256 i = 0; i < openOrders.length; i++) {
+            o[i] = openOrders[i];
+        }
+        return o;
     }
 }
