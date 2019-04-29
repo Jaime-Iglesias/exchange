@@ -1,4 +1,5 @@
 pragma solidity 0.5.2;
+pragma experimental ABIEncoderV2;
 
 import "./SafeMath.sol";
 import "./IERC20.sol";
@@ -22,31 +23,30 @@ contract  MyExchange is Ownable {
     );
 
     event LogOrder(
-        address _maker,
+        address _orderMaker,
+        uint256 _haveTokenId,
+        uint256 _haveAmount,
         uint256 _wantTokenId,
         uint256 _wantAmount,
-        uint256 _giveTokenId,
-        uint256 _giveAmount,
-        uint256 _creationBlock,
-        uint256 _nonce
+        uint256 _creationBlock
     );
 
     event LogTrade(
-        address _maker,
+        address _orderMaker,
+        uint256 _haveTokenId,
+        uint256 _haveAmount,
         uint256 _wantTokenId,
         uint256 _wantAmount,
-        uint256 _giveTokenId,
-        uint256 _giveAmount,
         uint256 _creationBlock,
         uint256 _amountFill
     );
 
     event LogCancelOrder(
-        address _maker,
+        address _orderMaker,
+        uint256 _haveTokenId,
+        uint256 _haveAmount,
         uint256 _wantTokenId,
         uint256 _wantAmount,
-        uint256 _giveTokenId,
-        uint256 _giveAmount,
         uint256 _creationBlock
     );
 
@@ -65,6 +65,7 @@ contract  MyExchange is Ownable {
     }
 
     uint256 public arrayLength;
+    uint256 public expirationBlocks;
     uint256 public lastExpiredOrder;
     Order[] public openOrders;
 
@@ -75,16 +76,34 @@ contract  MyExchange is Ownable {
 
     constructor() public {
         tokenIds[address(0)] = 1;
-        tokenAddresses[0] = address(0);
+        tokenAddresses.push(address(0));
+        expirationBlocks = 5000;
     }
 
-    modifier onlyTokens(address _tokenAddress) {
-        require(_token != address(0), "address cannot be the 0 address");
+    modifier orderExists(uint256 _orderIndex) {
+        require(arrayLength > 0 && _orderIndex <= (arrayLength-1), "order does not exist");
+        require(openOrders[_orderIndex].haveAmount != 0, "order does not exist");
         _;
     }
 
     modifier onlyOrderMaker(uint256 _orderIndex) {
         require(openOrders[_orderIndex].orderMaker == msg.sender);
+        _;
+    }
+
+    modifier orderNotExpired(uint256 _orderIndex) {
+        if (_orderIndex != 0) {
+            require(_orderIndex > lastExpiredOrder, "the order has already expired");
+        }
+        require(
+            (openOrders[_orderIndex].creationBlock).add(expirationBlocks) >= block.number,
+            "the order has already expired"
+        );
+        _;
+    }
+
+    modifier onlyTokens(address _tokenAddress) {
+        require(_tokenAddress != address(0), "address cannot be the 0 address");
         _;
     }
 
@@ -99,8 +118,8 @@ contract  MyExchange is Ownable {
     }
 
     function addToken(address _tokenAddress) external onlyOwner tokenNotExists(_tokenAddress) {
-        tokenIds[_tokenAddress] = tokenAddresses.length;
         tokenAddresses.push(_tokenAddress);
+        tokenIds[_tokenAddress] = tokenAddresses.length;
     }
 
     /// Function to receive ETH
@@ -108,7 +127,7 @@ contract  MyExchange is Ownable {
     /// Triggers deposit event.
     function deposit() external payable {
         Balance storage b = userBalanceForToken[address(0)][msg.sender];
-        b.available = b.available.add(msg.value);
+        b.available = (b.available).add(msg.value);
         emit LogDepositToken(msg.sender, address(0), msg.value);
     }
 
@@ -118,7 +137,7 @@ contract  MyExchange is Ownable {
     function withdraw(uint256 _amount) external {
         Balance storage b = userBalanceForToken[address(0)][msg.sender];
         require(b.available >= _amount, "not enough balance available");
-        b.available = b.available.sub(_amount);
+        b.available = (b.available).sub(_amount);
         msg.sender.transfer(_amount);
         emit LogWithdrawToken(msg.sender, address(0), _amount);
     }
@@ -137,22 +156,22 @@ contract  MyExchange is Ownable {
     function withdrawToken(address _token, uint256 _amount) external onlyTokens(_token) tokenExists(_token) {
         Balance storage balance = userBalanceForToken[_token][msg.sender];
         require(balance.available >= _amount, "not enough balance available");
-        balance.available = balance.available.sub(_amount);
+        balance.available = (balance.available).sub(_amount);
         require(IERC20(_token).transfer(msg.sender, _amount), "ERC20 transfer failed");
         emit LogWithdrawToken(msg.sender, _token, _amount);
     }
 
     function placeOrder(
-        address _wantToken,
-        uint256 _wantAmount,
         address _haveToken,
         uint256 _haveAmount,
+        address _wantToken,
+        uint256 _wantAmount
     ) external payable tokenExists(_wantToken) tokenExists(_haveToken) {
         Balance storage balance = userBalanceForToken[_haveToken][msg.sender];
         /// if availabe is not enough, check for other sources of balance.
         if (balance.available < _haveAmount) {
             require(
-                _checkBank(tokenIds[_haveToken]), _haveAmount.sub(balance.available),
+                _checkBank(tokenIds[_haveToken], _haveAmount.sub(balance.available)),
                 "not enough balance"
             );
         }
@@ -166,72 +185,85 @@ contract  MyExchange is Ownable {
             haveAmount: _haveAmount,
             wantTokenId: tokenIds[_wantToken],
             wantAmount: _wantAmount,
-            creationBlock: block.number,
+            creationBlock: block.number
         }));
         arrayLength = arrayLength + 1;
         /// emit event
-        emit LogOrder(msg.sender, tokenIds[_haveToken], haveAmount, tokenIds[_wantToken], wantAmount, creationBlock);
+        emit LogOrder(msg.sender, tokenIds[_haveToken], _haveAmount, tokenIds[_wantToken], _wantAmount, block.number);
     }
 
-    function cancelOrder(uint256 _orderIndex) external onlyOrderMaker(_orderIndex) {
-        require(_orderIndex > lastExpiredOrder, "the order has already expired");
+    function cancelOrder(
+        uint256 _orderIndex
+    ) external orderExists(_orderIndex) onlyOrderMaker(_orderIndex) orderNotExpired(_orderIndex) {
         Order storage order = openOrders[_orderIndex];
-        require(order != 0, "the order has already been canceled");
         /// unlock locked assets
-        Balance storage balance = userBalanceForToken[tokenAddresses[order.haveTokenId]][msg.sender];
+        Balance storage balance = userBalanceForToken[tokenAddresses[order.haveTokenId-1]][msg.sender];
         balance.locked = (balance.locked).sub(order.haveAmount);
         balance.available = (balance.available).add(order.haveAmount);
-        /// emit event and delete order
+        /// emit event
         emit LogCancelOrder(
             order.orderMaker,
             order.haveTokenId,
             order.haveAmount,
             order.wantTokenId,
             order.wantAmount,
-            order.creationBlock,
+            order.creationBlock
         );
-        delete order;
+        /// delete order
+        delete openOrders[_orderIndex];
     }
 
-    function executeOrder(uint256 _orderIndex, uint256 _amountFill) external {
-        require(_orderIndex > lastExpiredOrder, "the order has already expired");
+    function executeOrder(
+        uint256 _orderIndex,
+        uint256 _amountFill
+    ) external orderExists(_orderIndex) orderNotExpired(_orderIndex) {
         Order storage order = openOrders[_orderIndex];
-        require(order != 0, "the order was canceled");
         /// check if taker has enough balance
-        Balance storage takerHaveTokenBalance = userBalanceForToken[tokenAddresses[order.wantTokenId]][msg.sender]
+        Balance storage takerHaveTokenBalance = userBalanceForToken[tokenAddresses[order.wantTokenId-1]][msg.sender];
         /// if availabe is not enough, check for other sources of balance.
-        if (takerHaveTokenBalance.availabe < _amountFill) {
+        if (takerHaveTokenBalance.available < _amountFill) {
             require(
-                _checkBank(tokenAddresses[order.haveTokenId], _haveAmount.sub(balance.available),
+                _checkBank(order.haveTokenId, _amountFill.sub(takerHaveTokenBalance.available)),
                 "not enough balance"
             );
         }
+        /// check if _amountFill is bigger than order wantAmount then calculate cost and change
+        uint256 takerCost = _amountFill;
+        if (_amountFill > order.wantAmount) {
+            takerCost = order.wantAmount;
+            uint256 takerChange = _amountFill.sub(order.wantAmount);
+            takerHaveTokenBalance.available = (takerHaveTokenBalance.available).add(takerChange);
+        }
         /// Calculate the cost the maker
-        haveToWantRatio = (order.haveAmount).div(order.wantAmount);
-        makerCost = haveToWantRatio.mul(_amountFill);
+        uint256  haveToWantRatio = (order.haveAmount).div(order.wantAmount);
+        uint256  makerCost = haveToWantRatio.mul(takerCost);
         /// update haveToken balance for maker and taker
-        Balance storage makerHaveTokenBalance = userBalanceForToken[tokenAddresses[order.wantTokenId]][msg.sender];
+        Balance storage makerHaveTokenBalance = userBalanceForToken[tokenAddresses[order.wantTokenId-1]][msg.sender];
         makerHaveTokenBalance.locked = (makerHaveTokenBalance.locked).sub(makerCost);
-        takerHaveTokenBalance.availabe = (takerHaveTokenBalance.availabe).sub(_amountFill);
+        takerHaveTokenBalance.available = (takerHaveTokenBalance.available).sub(takerCost);
         /// update wantToken balance for maker and taker
-        Balance storage makerWantTokenBalance = userBalanceForToken[tokenAddresses[order.wantTokenId]][order.orderMaker];
-        makerWantTokenBalance = (makerWantTokenBalance.available).add(_amountFill);
-        Balance storage takerWantTokenBalance = userBalanceForToken[tokenAddresses[order.haveTokenId]][msg.sender];
-        takerWantTokenBalance = (takerWantTokenBalance.available).add(makerCost);
+        Balance storage makerWantTokenBalance = userBalanceForToken[tokenAddresses[order.wantTokenId-1]][order.orderMaker];
+        makerWantTokenBalance.available = (makerWantTokenBalance.available).add(takerCost);
+        Balance storage takerWantTokenBalance = userBalanceForToken[tokenAddresses[order.haveTokenId-1]][msg.sender];
+        takerWantTokenBalance.available = (takerWantTokenBalance.available).add(makerCost);
         /// update order
-        order.wantAmount = (order.wantAmount).sub(_amountFill);
-        order.haveAmount = (order.haveAmount).sub(_makerCost);
+        order.wantAmount = (order.wantAmount).sub(takerCost);
+        order.haveAmount = (order.haveAmount).sub(makerCost);
         /// if the order is completely filled, delete it
         if (order.wantAmount == 0) {
-            delete order;
+            delete openOrders[_orderIndex];
         }
         /// emit event
         emit LogTrade(
             order.orderMaker, order.haveTokenId,
             order.haveAmount, order.wantTokenId,
             order.wantAmount, order.creationBlock,
-            amountFill
+            takerCost
         );
+    }
+
+    function setExpiration(uint256 _expiraton) external onlyOwner {
+        expirationBlocks = _expiraton;
     }
 
     /// function to get the amount of tokens of _token type a user has
@@ -240,13 +272,21 @@ contract  MyExchange is Ownable {
     }
 
     /// function to get the amount of tokens of _token type msg.sender has inside the contract
-    function getUserBalanceForToken(address _token) public view returns (uint256 available, uint256 locked) {
-        Balance storage b = userBalanceForToken[_token][msg.sender];
-        return (b.available, b.locked);
+    function getUserBalanceForToken(address _token) public view returns (Balance memory) {
+        return(userBalanceForToken[_token][msg.sender]);
     }
 
-    function getTokenAddress(uint256 _tokenId) public view tokenExists(_tokenId) returns (address tokenAddress) {
-        return tokenAddresses[_tokenId];
+    function getTokenId(address _token) public view tokenExists(_token) returns (uint256) {
+        return tokenIds[_token];
+    }
+
+    function getTokenAddress(uint256 _tokenId) public view returns (address) {
+        require(_tokenId != 0 && _tokenId <= tokenAddresses.length, "token does not exist");
+        return tokenAddresses[_tokenId - 1];
+    }
+
+    function getOrder(uint256 _orderIndex) public view orderExists(_orderIndex) returns (Order memory) {
+        return openOrders[_orderIndex];
     }
 
     function getOpenOrders() public view returns (Order[] memory, uint256[] memory) {
@@ -254,8 +294,8 @@ contract  MyExchange is Ownable {
         Order[] memory order = new Order[](size);
         uint[] memory realIndices = new uint[](size);
         uint index = 0;
-        for (uint256 i = lastExpired + 1; i < arrayLength - 1; i++) {
-            if (openOrders[i] == 0) continue;
+        for (uint256 i = lastExpiredOrder + 1; i < arrayLength - 1; i++) {
+            if (openOrders[i].wantAmount == 0) continue;
             order[index++] = openOrders[i];
             realIndices[index++] = i;
         }
@@ -265,19 +305,19 @@ contract  MyExchange is Ownable {
     function _checkBank(uint256 _tokenId, uint256 _amountNeeded) internal returns (bool) {
         if (_tokenId == 1) {
             require(msg.value >= _amountNeeded, "not enough balance");
-            Balance storage balance = userBalanceForToken[tokenAddresses(_tokenId)][msg.sender];
+            Balance storage balance = userBalanceForToken[tokenAddresses[_tokenId-1]][msg.sender];
             balance.available = balance.available.add(_amountNeeded);
             msg.sender.transfer(msg.value.sub(_amountNeeded));
         } else {
             require(
-                IERC20(tokenAddresses(_tokenId)).allowance(msg.sender, address(this)) >= _amountNeeded,
+                IERC20(tokenAddresses[_tokenId-1]).allowance(msg.sender, address(this)) >= _amountNeeded,
                 "not enough balance"
             );
             require(
-                IERC20(tokenAddresses(_tokenId)).transferFrom(msg.sender, address(this), _amountNeeded),
+                IERC20(tokenAddresses[_tokenId-1]).transferFrom(msg.sender, address(this), _amountNeeded),
                 "ERC20 token error"
             );
-            Balance storage balance = userBalanceForToken[tokenAddresses(_tokenId)][msg.sender];
+            Balance storage balance = userBalanceForToken[tokenAddresses[_tokenId-1]][msg.sender];
             balance.available = balance.available.add(_amountNeeded);
         }
         return true;
