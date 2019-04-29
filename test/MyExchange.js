@@ -20,7 +20,7 @@ contract ('Exchange', function (accounts) {
         this.token = await Token.new(initialSupply);
     });
 
-    /*describe('addToken', function () {
+    describe('addToken', function () {
         describe('when the caller is not the contract owner', function () {
             it('reverts', async function () {
                 await shouldFail.reverting(this.exchange.addToken(this.token.address, { from: caller }));
@@ -661,7 +661,7 @@ contract ('Exchange', function (accounts) {
                 });
             });
         });
-    });*/
+    });
 
     describe('cancelOrder', function () {
         describe('when the order does not exist', function () {

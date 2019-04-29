@@ -234,7 +234,7 @@ contract  MyExchange is Ownable {
             uint256 takerChange = _amountFill.sub(order.wantAmount);
             takerHaveTokenBalance.available = (takerHaveTokenBalance.available).add(takerChange);
         }
-        /// Calculate the cost the maker
+        /// Calculate the cost for the maker
         uint256  haveToWantRatio = (order.haveAmount).div(order.wantAmount);
         uint256  makerCost = haveToWantRatio.mul(takerCost);
         /// update haveToken balance for maker and taker
@@ -266,12 +266,22 @@ contract  MyExchange is Ownable {
         expirationBlocks = _expiraton;
     }
 
-    /// function to get the amount of tokens of _token type a user has
+    function deleteExpiredOrders() external onlyOwner {
+        for (uint256 i = lastExpiredOrder; i < arrayLength - 1; i++) {
+            if (openOrders[i].creationBlock == 0) continue;
+            if ((openOrders[i].creationBlock).add(expirationBlocks) <= block.number) {
+                delete openOrders[i];
+            } else {
+                lastExpiredOrder = i;
+                break;
+            }
+        }
+    }
+
     function balanceOf(address _token) public view returns (uint256) {
         return (IERC20(_token).balanceOf(msg.sender));
     }
 
-    /// function to get the amount of tokens of _token type msg.sender has inside the contract
     function getUserBalanceForToken(address _token) public view returns (Balance memory) {
         return(userBalanceForToken[_token][msg.sender]);
     }
@@ -294,7 +304,7 @@ contract  MyExchange is Ownable {
         Order[] memory order = new Order[](size);
         uint[] memory realIndices = new uint[](size);
         uint index = 0;
-        for (uint256 i = lastExpiredOrder + 1; i < arrayLength - 1; i++) {
+        for (uint256 i = lastExpiredOrder; i < arrayLength - 1; i++) {
             if (openOrders[i].wantAmount == 0) continue;
             order[index++] = openOrders[i];
             realIndices[index++] = i;
