@@ -81,7 +81,7 @@ contract  MyExchange is Ownable {
     }
 
     modifier orderExists(uint256 _orderIndex) {
-        require(arrayLength > 0 && _orderIndex <= (arrayLength-1), "order does not exist");
+        require(arrayLength > 0 && _orderIndex < (arrayLength), "order does not exist");
         require(openOrders[_orderIndex].haveAmount != 0, "order does not exist");
         _;
     }
@@ -267,7 +267,7 @@ contract  MyExchange is Ownable {
     }
 
     function deleteExpiredOrders() external onlyOwner {
-        for (uint256 i = lastExpiredOrder; i < arrayLength - 1; i++) {
+        for (uint256 i = lastExpiredOrder; i < arrayLength; i++) {
             if (openOrders[i].creationBlock == 0) continue;
             if ((openOrders[i].creationBlock).add(expirationBlocks) <= block.number) {
                 delete openOrders[i];
@@ -299,15 +299,24 @@ contract  MyExchange is Ownable {
         return openOrders[_orderIndex];
     }
 
+    function getTokens() public view returns (address[] memory) {
+        address[] memory tokens = new address[](tokenAddresses.length);
+        uint256 counter = 0;
+        for (uint256 i = 0; i < tokenAddresses.length; i++) {
+            tokens[counter++] = tokenAddresses[i];
+        }
+        return tokens;
+    }
+
     function getOpenOrders() public view returns (Order[] memory, uint256[] memory) {
         uint256 size = arrayLength - lastExpiredOrder;
         Order[] memory order = new Order[](size);
         uint[] memory realIndices = new uint[](size);
-        uint index = 0;
-        for (uint256 i = lastExpiredOrder; i < arrayLength - 1; i++) {
+        uint counter = 0;
+        for (uint256 i = lastExpiredOrder; i < arrayLength; i++) {
             if (openOrders[i].wantAmount == 0) continue;
-            order[index++] = openOrders[i];
-            realIndices[index++] = i;
+            order[counter++] = openOrders[i];
+            realIndices[counter++] = i;
         }
         return (order, realIndices);
     }
