@@ -166,7 +166,7 @@ contract  MyExchange is Ownable {
         uint256 _haveAmount,
         address _wantToken,
         uint256 _wantAmount
-    ) external payable tokenExists(_wantToken) tokenExists(_haveToken) {
+    ) external payable tokenExists(_haveToken) tokenExists(_wantToken) {
         Balance storage balance = userBalanceForToken[_haveToken][msg.sender];
         /// if availabe is not enough, check for other sources of balance.
         if (balance.available < _haveAmount) {
