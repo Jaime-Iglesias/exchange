@@ -311,8 +311,8 @@ contract  MyExchange is Ownable {
     function getOpenOrders() public view returns (Order[] memory, uint256[] memory) {
         uint256 size = arrayLength.sub(lastExpiredOrder);
         Order[] memory order = new Order[](size);
-        uint[] memory realIndices = new uint[](size);
-        uint counter = 0;
+        uint256[] memory realIndices = new uint[](size);
+        uint256 counter = 0;
         for (uint256 i = lastExpiredOrder; i < arrayLength; i++) {
             if (openOrders[i].wantAmount == 0) continue;
             order[counter] = openOrders[i];
