@@ -1,0 +1,6 @@
+let contract =  MyExchange.deployed()
+let token =  TestingToken.deployed()
+let accounts = await web3.eth.getAccounts()
+let result1 = await contract.addToken(token.address, {from: accounts[0]})
+let balance = await contract.balanceOf(accounts[0])
+let result2 = await token.approve(contract.address, balance2, {from: accounts[0]})
