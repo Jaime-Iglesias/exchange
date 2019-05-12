@@ -234,9 +234,10 @@ contract  MyExchange is Ownable {
             uint256 takerChange = _amountFill.sub(order.wantAmount);
             takerHaveTokenBalance.available = (takerHaveTokenBalance.available).add(takerChange);
         }
-        /// Calculate the cost for the maker
-        uint256  haveToWantRatio = (order.haveAmount).div(order.wantAmount);
-        uint256  makerCost = haveToWantRatio.mul(takerCost);
+        /// Calculate rate
+        uint256 haveRate = (order.wantAmount).div(order.haveAmount);
+        /// Calculate maker and taker cost
+        uint256  makerCost = haveRate.mul(takerCost);
         /// update haveToken balance for maker and taker
         Balance storage makerHaveTokenBalance = userBalanceForToken[tokenAddresses[order.wantTokenId-1]][msg.sender];
         makerHaveTokenBalance.locked = (makerHaveTokenBalance.locked).sub(makerCost);
@@ -270,6 +271,11 @@ contract  MyExchange is Ownable {
         for (uint256 i = lastExpiredOrder; i < arrayLength; i++) {
             if (openOrders[i].creationBlock == 0) continue;
             if ((openOrders[i].creationBlock).add(expirationBlocks) <= block.number) {
+                require(_unlockBalance(
+                    openOrders[i].haveTokenId,
+                    openOrders[i].haveAmount,
+                    openOrders[i].orderMaker
+                ), "failed to delete expired orders");
                 delete openOrders[i];
             } else {
                 lastExpiredOrder = i;
@@ -339,6 +345,14 @@ contract  MyExchange is Ownable {
             Balance storage balance = userBalanceForToken[tokenAddresses[_tokenId-1]][msg.sender];
             balance.available = balance.available.add(_amountNeeded);
         }
+        return true;
+    }
+
+    function _unlockBalance(uint256 _tokenId, uint256 _amountUnlock, address _maker ) internal returns (bool) {
+        address tokenAddress = tokenAddresses[_tokenId];
+        Balance storage makerBalance = userBalanceForToken[tokenAddress][_maker];
+        makerBalance.locked = makerBalance.locked.sub(_amountUnlock);
+        makerBalance.available = makerBalance.available.add(_amountUnlock);
         return true;
     }
 }
