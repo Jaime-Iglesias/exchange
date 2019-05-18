@@ -64,7 +64,6 @@ contract  MyExchange is Ownable {
         uint256 creationBlock;
     }
 
-    uint256 public arrayLength;
     uint256 public expirationBlocks;
     uint256 public lastExpiredOrder;
     Order[] public openOrders;
@@ -81,7 +80,7 @@ contract  MyExchange is Ownable {
     }
 
     modifier orderExists(uint256 _orderIndex) {
-        require(arrayLength > 0 && _orderIndex < (arrayLength), "order does not exist");
+        require(openOrders.length > 0 && _orderIndex < (openOrders.length), "order does not exist");
         require(openOrders[_orderIndex].haveAmount != 0, "order does not exist");
         _;
     }
@@ -187,7 +186,6 @@ contract  MyExchange is Ownable {
             wantAmount: _wantAmount,
             creationBlock: block.number
         }));
-        arrayLength = arrayLength + 1;
         /// emit event
         emit LogOrder(msg.sender, tokenIds[_haveToken], _haveAmount, tokenIds[_wantToken], _wantAmount, block.number);
     }
@@ -268,7 +266,7 @@ contract  MyExchange is Ownable {
     }
 
     function deleteExpiredOrders() external onlyOwner {
-        for (uint256 i = lastExpiredOrder; i < arrayLength; i++) {
+        for (uint256 i = lastExpiredOrder; i < openOrders.length; i++) {
             if (openOrders[i].creationBlock == 0) continue;
             if ((openOrders[i].creationBlock).add(expirationBlocks) <= block.number) {
                 require(_unlockBalance(
@@ -315,11 +313,11 @@ contract  MyExchange is Ownable {
     }
 
     function getOpenOrders() public view returns (Order[] memory, uint256[] memory) {
-        uint256 size = arrayLength.sub(lastExpiredOrder);
+        uint256 size = (openOrders.length).sub(lastExpiredOrder);
         Order[] memory order = new Order[](size);
         uint256[] memory realIndices = new uint[](size);
         uint256 counter = 0;
-        for (uint256 i = lastExpiredOrder; i < arrayLength; i++) {
+        for (uint256 i = lastExpiredOrder; i < openOrders.length; i++) {
             if (openOrders[i].wantAmount == 0) continue;
             order[counter] = openOrders[i];
             realIndices[counter++] = i;
