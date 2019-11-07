@@ -10,6 +10,7 @@ contract  MyExchange is Ownable {
 
     using SafeMath for uint256;
 
+    // Events
     event LogDepositToken(
         address indexed _user,
         address indexed _token,
@@ -50,6 +51,7 @@ contract  MyExchange is Ownable {
         uint256 _creationBlock
     );
 
+    //  Storage
     struct Balance {
         uint256 available;
         uint256 locked;
